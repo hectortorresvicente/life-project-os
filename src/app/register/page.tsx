@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +35,24 @@ export default function LoginPage() {
     }
 
     if (!password) {
-      setErrorMessage("Introduce tu contraseña.");
+      setErrorMessage("Introduce una contraseña.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMessage(
+        "La contraseña debe tener como mínimo 8 caracteres."
+      );
+      return;
+    }
+
+    if (!repeatPassword) {
+      setErrorMessage("Repite la contraseña.");
+      return;
+    }
+
+    if (password !== repeatPassword) {
+      setErrorMessage("Las contraseñas no coinciden.");
       return;
     }
 
@@ -43,21 +61,31 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
       });
 
-      if (error) {
-        setErrorMessage("Correo o contraseña incorrectos.");
-        return;
-      }
+if (error) {
+  console.error("Error al crear usuario:", error);
 
-      router.push("/home");
+  setErrorMessage(
+    "No se ha podido crear la cuenta. Revisa los datos e inténtalo de nuevo."
+  );
+
+  return;
+}
+
+      // Con Confirm Email desactivado, Supabase inicia sesión
+      // automáticamente. La cerramos porque nuestro flujo quiere
+      // volver al login después del registro.
+      await supabase.auth.signOut();
+
+      router.push("/login");
       router.refresh();
     } catch {
       setErrorMessage(
-        "No se ha podido iniciar sesión. Inténtalo de nuevo."
+        "No se ha podido crear la cuenta. Inténtalo de nuevo."
       );
     } finally {
       setLoading(false);
@@ -73,7 +101,7 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-2 text-gray-600">
-            Inicia sesión para continuar
+            Crear una cuenta
           </p>
         </div>
 
@@ -88,7 +116,6 @@ export default function LoginPage() {
 
             <input
               id="email"
-              name="email"
               type="email"
               autoComplete="email"
               value={email}
@@ -108,13 +135,33 @@ export default function LoginPage() {
 
             <input
               id="password"
-              name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-black"
-              placeholder="Tu contraseña"
+              placeholder="Mínimo 8 caracteres"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="repeatPassword"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
+              Repite la contraseña
+            </label>
+
+            <input
+              id="repeatPassword"
+              type="password"
+              autoComplete="new-password"
+              value={repeatPassword}
+              onChange={(event) =>
+                setRepeatPassword(event.target.value)
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-black"
+              placeholder="Repite la contraseña"
             />
           </div>
 
@@ -132,20 +179,16 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
           </button>
         </form>
 
-        <div className="mt-6 border-t border-gray-200 pt-6 text-center">
-          <p className="mb-3 text-sm text-gray-600">
-            ¿No tienes una cuenta?
-          </p>
-
+        <div className="mt-6 text-center">
           <Link
-            href="/register"
-            className="inline-block w-full rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-900 transition hover:bg-gray-50"
+            href="/login"
+            className="text-sm font-medium text-gray-700 hover:text-black"
           >
-            Crear cuenta
+            ← Volver al inicio de sesión
           </Link>
         </div>
       </div>
